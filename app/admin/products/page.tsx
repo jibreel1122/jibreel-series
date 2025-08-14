@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Plus, Edit, Trash2, Search, ArrowLeft, Package, Star, X } from "lucide-react"
+import { Plus, Edit, Trash2, Search, ArrowLeft, Package, Star, X, Upload, ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase/client"
 
@@ -34,12 +34,11 @@ const initialProducts = [
     name_ar: "قميص قطني فاخر",
     price: 299,
     images: ["/mens-white-dress-shirt.png", "/white-dress-shirt-front.png", "/white-dress-shirt-back.png"],
-    category_en: "Shirts",
-    category_ar: "قمصان",
+    category: { en: "Shirts", ar: "قمصان" },
     description_en: "High-quality cotton dress shirt perfect for formal occasions",
     description_ar: "قميص قطني عالي الجودة مثالي للمناسبات الرسمية",
     rating: 4.8,
-    stock_status: "In Stock",
+    stock: 100,
     colors: ["Black", "White", "Navy", "Gray"],
     sizes: ["S", "M", "L", "XL"],
   },
@@ -49,12 +48,11 @@ const initialProducts = [
     name_ar: "جينز كلاسيكي",
     price: 450,
     images: ["/mens-classic-blue-jeans.png", "/blue-jeans-side.png", "/blue-jeans-back-pocket.png"],
-    category_en: "Jeans",
-    category_ar: "جينز",
+    category: { en: "Jeans", ar: "جينز" },
     description_en: "Comfortable and stylish denim jeans for everyday wear",
     description_ar: "جينز مريح وأنيق للارتداء اليومي",
     rating: 4.6,
-    stock_status: "In Stock",
+    stock: 100,
     colors: ["Black", "Blue"],
     sizes: ["S", "M", "L"],
   },
@@ -64,12 +62,11 @@ const initialProducts = [
     name_ar: "بليزر صوفي",
     price: 899,
     images: ["/mens-navy-wool-blazer.png", "/placeholder-m5etl.png", "/navy-blazer-detail.png"],
-    category_en: "Blazers",
-    category_ar: "بليزرات",
+    category: { en: "Blazers", ar: "بليزرات" },
     description_en: "Sophisticated wool blazer for business and formal events",
     description_ar: "بليزر صوفي أنيق للأعمال والمناسبات الرسمية",
     rating: 4.9,
-    stock_status: "In Stock",
+    stock: 100,
     colors: ["Navy", "Gray"],
     sizes: ["S", "M"],
   },
@@ -84,8 +81,65 @@ const categories = [
   { en: "Jackets", ar: "جاكيتات" },
 ]
 
-const availableColors = ["Black", "White", "Navy", "Gray", "Blue", "Brown", "Red", "Green"]
-const availableSizes = ["XS", "S", "M", "L", "XL", "XXL"]
+const availableColors = [
+  "Black",
+  "White",
+  "Navy",
+  "Gray",
+  "Blue",
+  "Brown",
+  "Red",
+  "Green",
+  "Pink",
+  "Purple",
+  "Orange",
+  "Yellow",
+  "Beige",
+  "Maroon",
+  "Olive",
+  "Teal",
+]
+
+const availableSizes = [
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+  "3XL",
+  "4XL",
+  "5XL",
+  "6XL",
+  "7XL",
+  "8XL",
+  "10",
+  "12",
+  "14",
+  "16",
+  "18",
+  "20",
+  "22",
+  "24",
+  "26",
+  "28",
+  "30",
+  "32",
+  "34",
+  "36",
+  "38",
+  "40",
+  "42",
+  "44",
+  "46",
+  "48",
+  "50",
+  "52",
+  "54",
+  "56",
+  "58",
+  "60",
+]
 
 const colorTranslations = {
   en: {
@@ -97,6 +151,14 @@ const colorTranslations = {
     Brown: "Brown",
     Red: "Red",
     Green: "Green",
+    Pink: "Pink",
+    Purple: "Purple",
+    Orange: "Orange",
+    Yellow: "Yellow",
+    Beige: "Beige",
+    Maroon: "Maroon",
+    Olive: "Olive",
+    Teal: "Teal",
   },
   ar: {
     Black: "أسود",
@@ -107,6 +169,14 @@ const colorTranslations = {
     Brown: "بني",
     Red: "أحمر",
     Green: "أخضر",
+    Pink: "وردي",
+    Purple: "بنفسجي",
+    Orange: "برتقالي",
+    Yellow: "أصفر",
+    Beige: "بيج",
+    Maroon: "عنابي",
+    Olive: "زيتوني",
+    Teal: "أزرق مخضر",
   },
 }
 
@@ -121,6 +191,7 @@ export default function AdminProducts() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [uploadingImages, setUploadingImages] = useState<boolean[]>([])
   const router = useRouter()
 
   const [newProduct, setNewProduct] = useState({
@@ -128,8 +199,7 @@ export default function AdminProducts() {
     name_ar: "",
     price: 0,
     images: [""],
-    category_en: "",
-    category_ar: "",
+    category: { en: "", ar: "" },
     description_en: "",
     description_ar: "",
     rating: 4.0,
@@ -170,7 +240,7 @@ export default function AdminProducts() {
     (product) =>
       product.name_en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.name_ar?.includes(searchTerm) ||
-      product.category_en?.toLowerCase().includes(searchTerm.toLowerCase()),
+      product.category.en?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const addImageField = () => {
@@ -212,8 +282,17 @@ export default function AdminProducts() {
     ) {
       try {
         const productData = {
-          ...newProduct,
+          name: newProduct.name_en,
+          name_ar: newProduct.name_ar,
+          price: newProduct.price,
           images: newProduct.images.filter((img) => img.trim() !== ""),
+          category: newProduct.category,
+          description: newProduct.description_en,
+          description_ar: newProduct.description_ar,
+          rating: newProduct.rating,
+          stock: newProduct.stock_status === "In Stock" ? 100 : 0,
+          colors: newProduct.colors,
+          sizes: newProduct.sizes,
         }
 
         const { error } = await supabase.from("products").insert([productData])
@@ -232,8 +311,7 @@ export default function AdminProducts() {
           name_ar: "",
           price: 0,
           images: [""],
-          category_en: "",
-          category_ar: "",
+          category: { en: "", ar: "" },
           description_en: "",
           description_ar: "",
           rating: 4.0,
@@ -242,10 +320,13 @@ export default function AdminProducts() {
           sizes: [],
         })
         setIsAddDialogOpen(false)
+        alert("Product added successfully!")
       } catch (error) {
         console.error("Error adding product:", error)
         alert("Error adding product. Please try again.")
       }
+    } else {
+      alert("Please fill in all required fields including colors and sizes.")
     }
   }
 
@@ -266,6 +347,7 @@ export default function AdminProducts() {
           .update({
             ...editingProduct,
             images: editingProduct.images.filter((img: string) => img.trim() !== ""),
+            stock: editingProduct.stock_status === "In Stock" ? 100 : 0,
           })
           .eq("id", editingProduct.id)
 
@@ -278,6 +360,7 @@ export default function AdminProducts() {
         // Reload products
         await loadProducts()
         setEditingProduct(null)
+        alert("Product updated successfully!")
       } catch (error) {
         console.error("Error updating product:", error)
         alert("Error updating product. Please try again.")
@@ -297,11 +380,106 @@ export default function AdminProducts() {
 
       // Reload products
       await loadProducts()
+      alert("Product deleted successfully!")
     } catch (error) {
       console.error("Error deleting product:", error)
       alert("Error deleting product. Please try again.")
     }
   }
+
+  const handleImageUpload = async (file: File, index: number, isEditing = false) => {
+    if (!file) return
+
+    const newUploadingImages = [...uploadingImages]
+    newUploadingImages[index] = true
+    setUploadingImages(newUploadingImages)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Upload failed")
+      }
+
+      const result = await response.json()
+
+      if (isEditing && editingProduct) {
+        const newImages = [...editingProduct.images]
+        newImages[index] = result.url
+        setEditingProduct({ ...editingProduct, images: newImages })
+      } else {
+        const newImages = [...newProduct.images]
+        newImages[index] = result.url
+        setNewProduct({ ...newProduct, images: newImages })
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error)
+      alert("Error uploading image. Please try again.")
+    } finally {
+      const newUploadingImages = [...uploadingImages]
+      newUploadingImages[index] = false
+      setUploadingImages(newUploadingImages)
+    }
+  }
+
+  const ImageField = ({ image, index, onChange, onUpload, isUploading }: any) => (
+    <div className="space-y-2">
+      <div className="flex items-center space-x-2">
+        <Input
+          value={image}
+          onChange={(e) => onChange(index, e.target.value)}
+          placeholder={`Image URL ${index + 1}`}
+          className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+        />
+        <div className="flex space-x-2">
+          <label className="cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) onUpload(file, index)
+              }}
+              className="hidden"
+            />
+            <Button type="button" size="sm" disabled={isUploading} className="bg-blue-600 hover:bg-blue-700">
+              {isUploading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+            </Button>
+          </label>
+          {newProduct.images.length > 1 && (
+            <Button
+              type="button"
+              onClick={() => removeImageField(index)}
+              size="sm"
+              variant="outline"
+              className="border-gray-600 text-red-400 hover:bg-gray-700"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+      {image && (
+        <div className="mt-2">
+          <img
+            src={image || "/placeholder.svg"}
+            alt={`Preview ${index + 1}`}
+            className="w-20 h-20 object-cover rounded border border-gray-600"
+          />
+        </div>
+      )}
+    </div>
+  )
 
   if (!isAuthenticated) {
     return (
@@ -389,27 +567,35 @@ export default function AdminProducts() {
                         <Label htmlFor="category" className="text-gray-200">
                           Category
                         </Label>
-                        <Select
-                          value={newProduct.category_en}
-                          onValueChange={(value) => setNewProduct({ ...newProduct, category_en: value })}
+                        <select
+                          value={newProduct.category.en}
+                          onChange={(e) => {
+                            const selectedCategory = categories.find((cat) => cat.en === e.target.value)
+                            if (selectedCategory) {
+                              setNewProduct({
+                                ...newProduct,
+                                category: { en: selectedCategory.en, ar: selectedCategory.ar },
+                              })
+                            }
+                          }}
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
-                          <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                            <SelectValue placeholder="Select category" className="text-gray-400" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                            {categories.map((category) => (
-                              <SelectItem key={category.en} value={category.en} className="text-gray-300">
-                                {category.en} / {category.ar}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <option value="">Select Category</option>
+                          {categories.map((category) => (
+                            <option key={category.en} value={category.en}>
+                              {category.en} / {category.ar}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <Label className="text-gray-200">Product Images</Label>
+                        <Label className="text-gray-200 flex items-center">
+                          <ImageIcon className="w-4 h-4 mr-2" />
+                          Product Images
+                        </Label>
                         <Button
                           type="button"
                           onClick={addImageField}
@@ -420,33 +606,22 @@ export default function AdminProducts() {
                           Add Image
                         </Button>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         {newProduct.images.map((image, index) => (
-                          <div key={index} className="flex items-center space-x-2">
-                            <Input
-                              value={image}
-                              onChange={(e) => updateImageField(index, e.target.value)}
-                              placeholder={`Image URL ${index + 1}`}
-                              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                            />
-                            {newProduct.images.length > 1 && (
-                              <Button
-                                type="button"
-                                onClick={() => removeImageField(index)}
-                                size="sm"
-                                variant="outline"
-                                className="border-gray-600 text-red-400 hover:bg-gray-700"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
+                          <ImageField
+                            key={index}
+                            image={image}
+                            index={index}
+                            onChange={updateImageField}
+                            onUpload={(file: File, idx: number) => handleImageUpload(file, idx, false)}
+                            isUploading={uploadingImages[index]}
+                          />
                         ))}
                       </div>
                     </div>
 
                     <div className="space-y-4">
-                      <Label className="text-gray-200">Available Colors</Label>
+                      <Label className="text-gray-200">Available Colors (Select Multiple)</Label>
                       <div className="grid grid-cols-4 gap-2">
                         {availableColors.map((color) => (
                           <button
@@ -463,26 +638,52 @@ export default function AdminProducts() {
                           </button>
                         ))}
                       </div>
+                      <p className="text-sm text-gray-400">Selected: {newProduct.colors.join(", ") || "None"}</p>
                     </div>
 
                     <div className="space-y-4">
-                      <Label className="text-gray-200">Available Sizes</Label>
-                      <div className="grid grid-cols-6 gap-2">
-                        {availableSizes.map((size) => (
-                          <button
-                            key={size}
-                            type="button"
-                            onClick={() => toggleSize(size)}
-                            className={`p-3 rounded border text-sm transition-all duration-200 ${
-                              newProduct.sizes.includes(size)
-                                ? "border-green-500 bg-green-600 text-white"
-                                : "border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500"
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        ))}
+                      <Label className="text-gray-200">Available Sizes (Select Multiple)</Label>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-gray-400 mb-2">Clothing Sizes:</p>
+                          <div className="grid grid-cols-6 gap-2">
+                            {availableSizes.slice(0, 12).map((size) => (
+                              <button
+                                key={size}
+                                type="button"
+                                onClick={() => toggleSize(size)}
+                                className={`p-2 rounded border text-sm transition-all duration-200 ${
+                                  newProduct.sizes.includes(size)
+                                    ? "border-green-500 bg-green-600 text-white"
+                                    : "border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500"
+                                }`}
+                              >
+                                {size}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-400 mb-2">Numeric Sizes:</p>
+                          <div className="grid grid-cols-8 gap-2">
+                            {availableSizes.slice(12).map((size) => (
+                              <button
+                                key={size}
+                                type="button"
+                                onClick={() => toggleSize(size)}
+                                className={`p-2 rounded border text-sm transition-all duration-200 ${
+                                  newProduct.sizes.includes(size)
+                                    ? "border-green-500 bg-green-600 text-white"
+                                    : "border-gray-600 bg-gray-700 text-gray-300 hover:border-gray-500"
+                                }`}
+                              >
+                                {size}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
+                      <p className="text-sm text-gray-400">Selected: {newProduct.sizes.join(", ") || "None"}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -591,9 +792,7 @@ export default function AdminProducts() {
               <Badge className="bg-gray-700 text-white">✓</Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {products.filter((p) => p.stock_status === "In Stock").length}
-              </div>
+              <div className="text-2xl font-bold text-white">{products.filter((p) => p.stock > 0).length}</div>
             </CardContent>
           </Card>
 
@@ -605,9 +804,7 @@ export default function AdminProducts() {
               </Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {products.filter((p) => p.stock_status === "Out of Stock").length}
-              </div>
+              <div className="text-2xl font-bold text-white">{products.filter((p) => p.stock === 0).length}</div>
             </CardContent>
           </Card>
 
@@ -686,9 +883,9 @@ export default function AdminProducts() {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="text-white">{product.category_en}</p>
+                        <p className="text-white">{product.category.en}</p>
                         <p className="text-sm text-gray-400" dir="rtl">
-                          {product.category_ar}
+                          {product.category.ar}
                         </p>
                       </div>
                     </TableCell>
@@ -729,12 +926,10 @@ export default function AdminProducts() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={product.stock_status === "In Stock" ? "default" : "destructive"}
-                        className={
-                          product.stock_status === "In Stock" ? "bg-gray-700 text-white" : "bg-red-900 text-red-200"
-                        }
+                        variant={product.stock > 0 ? "default" : "destructive"}
+                        className={product.stock > 0 ? "bg-gray-700 text-white" : "bg-red-900 text-red-200"}
                       >
-                        {product.stock_status}
+                        {product.stock > 0 ? "In Stock" : "Out of Stock"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -845,21 +1040,26 @@ export default function AdminProducts() {
                   <Label htmlFor="edit-category" className="text-gray-200">
                     Category
                   </Label>
-                  <Select
-                    value={editingProduct.category_en}
-                    onValueChange={(value) => setEditingProduct({ ...editingProduct, category_en: value })}
+                  <select
+                    value={editingProduct.category.en}
+                    onChange={(e) => {
+                      const selectedCategory = categories.find((cat) => cat.en === e.target.value)
+                      if (selectedCategory) {
+                        setEditingProduct({
+                          ...editingProduct,
+                          category: { en: selectedCategory.en, ar: selectedCategory.ar },
+                        })
+                      }
+                    }}
+                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                      <SelectValue className="text-gray-400" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                      {categories.map((category) => (
-                        <SelectItem key={category.en} value={category.en} className="text-gray-300">
-                          {category.en} / {category.ar}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <option value="">Select Category</option>
+                    {categories.map((category) => (
+                      <option key={category.en} value={category.en}>
+                        {category.en} / {category.ar}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

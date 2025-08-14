@@ -72,7 +72,7 @@ export default function AdminOrders() {
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerInfo.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerInfo.phone.includes(searchTerm)
 
@@ -255,230 +255,233 @@ export default function AdminOrders() {
             <CardTitle className="text-white">Orders ({filteredOrders.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-300">Order ID</TableHead>
-                  <TableHead className="text-gray-300">Customer</TableHead>
-                  <TableHead className="text-gray-300">Items</TableHead>
-                  <TableHead className="text-gray-300">Total</TableHead>
-                  <TableHead className="text-gray-300">Status</TableHead>
-                  <TableHead className="text-gray-300">Date</TableHead>
-                  <TableHead className="text-gray-300">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.map((order) => {
-                  const statusInfo = getStatusInfo(order.status)
-                  const StatusIcon = statusInfo.icon
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-700">
+                    <TableHead className="text-gray-300 min-w-[100px]">Order ID</TableHead>
+                    <TableHead className="text-gray-300 min-w-[200px]">Customer</TableHead>
+                    <TableHead className="text-gray-300 min-w-[80px]">Items</TableHead>
+                    <TableHead className="text-gray-300 min-w-[100px]">Total</TableHead>
+                    <TableHead className="text-gray-300 min-w-[150px]">Status</TableHead>
+                    <TableHead className="text-gray-300 min-w-[150px]">Date</TableHead>
+                    <TableHead className="text-gray-300 min-w-[120px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.map((order) => {
+                    const statusInfo = getStatusInfo(order.status)
+                    const StatusIcon = statusInfo.icon
 
-                  return (
-                    <TableRow key={order.id} className="border-gray-700">
-                      <TableCell className="font-medium text-white">{order.id}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-white">{order.customerInfo.fullName}</p>
-                          <p className="text-sm text-gray-400">{order.customerInfo.phone}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-300">
-                          {order.items.length} item{order.items.length > 1 ? "s" : ""}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium text-white">₪{order.total}</TableCell>
-                      <TableCell>
-                        <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value)}>
-                          <SelectTrigger className="w-32 bg-gray-700 border-gray-600 text-white">
-                            <div className="flex items-center">
-                              <StatusIcon className="w-4 h-4 mr-2" />
-                              <SelectValue />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700">
-                            {orderStatuses.map((status) => {
-                              const Icon = status.icon
-                              return (
-                                <SelectItem
-                                  key={status.value}
-                                  value={status.value}
-                                  className="text-white hover:bg-gray-700"
-                                >
-                                  <div className="flex items-center">
-                                    <Icon className="w-4 h-4 mr-2" />
-                                    {status.label}
+                    return (
+                      <TableRow key={order.id} className="border-gray-700">
+                        <TableCell className="font-medium text-white">{order.id}</TableCell>
+                        <TableCell className="min-w-[200px]">
+                          <div>
+                            <p className="font-medium text-white">{order.customerInfo.fullName}</p>
+                            <p className="text-sm text-gray-400">{order.customerInfo.phone}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-300">
+                            {order.items.length} item{order.items.length > 1 ? "s" : ""}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-white">₪{order.total}</TableCell>
+                        <TableCell>
+                          <Select value={order.status} onValueChange={(value) => handleStatusChange(order.id, value)}>
+                            <SelectTrigger className="w-32 bg-gray-700 border-gray-600 text-white">
+                              <div className="flex items-center">
+                                <StatusIcon className="w-4 h-4 mr-2" />
+                                <SelectValue />
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700">
+                              {orderStatuses.map((status) => {
+                                const Icon = status.icon
+                                return (
+                                  <SelectItem
+                                    key={status.value}
+                                    value={status.value}
+                                    className="text-white hover:bg-gray-700"
+                                  >
+                                    <div className="flex items-center">
+                                      <Icon className="w-4 h-4 mr-2" />
+                                      {status.label}
+                                    </div>
+                                  </SelectItem>
+                                )
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-300">
+                            {new Date(order.orderDate).toLocaleDateString()}
+                            <br />
+                            <span className="text-gray-500">{new Date(order.orderDate).toLocaleTimeString()}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedOrder(order)}
+                                className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700 text-white">
+                              <DialogHeader>
+                                <DialogTitle className="text-white">Order Details - {order.id}</DialogTitle>
+                              </DialogHeader>
+                              {selectedOrder && (
+                                <div className="space-y-6">
+                                  {/* Customer Information */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Card className="bg-gray-700 border-gray-600">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-lg flex items-center text-white">
+                                          <User className="w-5 h-5 mr-2 text-gray-400" />
+                                          Customer Information
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="space-y-2">
+                                        <div className="flex items-center">
+                                          <User className="w-4 h-4 mr-2 text-gray-400" />
+                                          <span className="font-medium text-white">
+                                            {selectedOrder.customerInfo.fullName}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center">
+                                          <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                                          <span className="text-gray-300">{selectedOrder.customerInfo.phone}</span>
+                                        </div>
+                                        <div className="flex items-start">
+                                          <MapPin className="w-4 h-4 mr-2 mt-1 text-gray-400" />
+                                          <span className="text-sm text-gray-300 break-words">
+                                            {selectedOrder.customerInfo.address}
+                                          </span>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+
+                                    {/* Order Information */}
+                                    <Card className="bg-gray-700 border-gray-600">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-lg flex items-center text-white">
+                                          <Package className="w-5 h-5 mr-2 text-gray-400" />
+                                          Order Information
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="space-y-2">
+                                        <div className="flex items-center">
+                                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                                          <span>{new Date(selectedOrder.orderDate).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                          <StatusIcon className="w-4 h-4 mr-2 text-gray-400" />
+                                          <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
+                                        </div>
+                                        <div className="flex items-center">
+                                          <span className="w-4 h-4 mr-2 text-gray-400">₪</span>
+                                          <span className="font-bold text-emerald-600">₪{selectedOrder.total}</span>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
                                   </div>
-                                </SelectItem>
-                              )
-                            })}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-300">
-                          {new Date(order.orderDate).toLocaleDateString()}
-                          <br />
-                          <span className="text-gray-500">{new Date(order.orderDate).toLocaleTimeString()}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedOrder(order)}
-                              className="border-gray-600 text-gray-200 hover:bg-gray-700"
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl bg-gray-800 border-gray-700 text-white">
-                            <DialogHeader>
-                              <DialogTitle className="text-white">Order Details - {order.id}</DialogTitle>
-                            </DialogHeader>
-                            {selectedOrder && (
-                              <div className="space-y-6">
-                                {/* Customer Information */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                  {/* Order Items */}
                                   <Card className="bg-gray-700 border-gray-600">
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className="text-lg flex items-center text-white">
-                                        <User className="w-5 h-5 mr-2 text-gray-400" />
-                                        Customer Information
-                                      </CardTitle>
+                                    <CardHeader>
+                                      <CardTitle className="text-lg text-white">Order Items</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="space-y-2">
-                                      <div className="flex items-center">
-                                        <User className="w-4 h-4 mr-2 text-gray-400" />
-                                        <span className="font-medium text-white">
-                                          {selectedOrder.customerInfo.fullName}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center">
-                                        <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                                        <span className="text-gray-300">{selectedOrder.customerInfo.phone}</span>
-                                      </div>
-                                      <div className="flex items-start">
-                                        <MapPin className="w-4 h-4 mr-2 mt-1 text-gray-400" />
-                                        <span className="text-sm text-gray-300">
-                                          {selectedOrder.customerInfo.address}
-                                        </span>
+                                    <CardContent>
+                                      <div className="space-y-3">
+                                        {selectedOrder.items.map((item: any, index: number) => (
+                                          <div
+                                            key={index}
+                                            className="flex justify-between items-center p-3 border rounded bg-gray-800"
+                                          >
+                                            <div>
+                                              <p className="font-medium text-white">
+                                                {item.name[selectedOrder.language] || item.name.en}
+                                              </p>
+                                              <p className="text-sm text-gray-300">
+                                                Quantity: {item.quantity} × ₪{item.price}
+                                              </p>
+                                            </div>
+                                            <div className="font-bold text-emerald-600">
+                                              ₪{item.price * item.quantity}
+                                            </div>
+                                          </div>
+                                        ))}
+                                        <div className="border-t pt-3 flex justify-between items-center font-bold text-lg text-white">
+                                          <span>Total:</span>
+                                          <span className="text-emerald-600">₪{selectedOrder.total}</span>
+                                        </div>
                                       </div>
                                     </CardContent>
                                   </Card>
 
+                                  {/* Status Update */}
                                   <Card className="bg-gray-700 border-gray-600">
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className="text-lg flex items-center text-white">
-                                        <Package className="w-5 h-5 mr-2 text-gray-400" />
-                                        Order Information
-                                      </CardTitle>
+                                    <CardHeader>
+                                      <CardTitle className="text-lg text-white">Update Order Status</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="space-y-2">
-                                      <div className="flex items-center">
-                                        <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                                        <span>{new Date(selectedOrder.orderDate).toLocaleString()}</span>
-                                      </div>
-                                      <div className="flex items-center">
-                                        <StatusIcon className="w-4 h-4 mr-2 text-gray-400" />
-                                        <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
-                                      </div>
-                                      <div className="flex items-center">
-                                        <span className="w-4 h-4 mr-2 text-gray-400">₪</span>
-                                        <span className="font-bold text-emerald-600">₪{selectedOrder.total}</span>
-                                      </div>
+                                    <CardContent>
+                                      <Select
+                                        value={selectedOrder.status}
+                                        onValueChange={(value) => {
+                                          handleStatusChange(selectedOrder.id, value)
+                                          setSelectedOrder({ ...selectedOrder, status: value })
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-gray-800 border-gray-700">
+                                          {orderStatuses.map((status) => {
+                                            const Icon = status.icon
+                                            return (
+                                              <SelectItem
+                                                key={status.value}
+                                                value={status.value}
+                                                className="text-white hover:bg-gray-700"
+                                              >
+                                                <div className="flex items-center">
+                                                  <Icon className="w-4 h-4 mr-2" />
+                                                  {status.label}
+                                                </div>
+                                              </SelectItem>
+                                            )
+                                          })}
+                                        </SelectContent>
+                                      </Select>
                                     </CardContent>
                                   </Card>
                                 </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
 
-                                {/* Order Items */}
-                                <Card className="bg-gray-700 border-gray-600">
-                                  <CardHeader>
-                                    <CardTitle className="text-lg text-white">Order Items</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="space-y-3">
-                                      {selectedOrder.items.map((item: any, index: number) => (
-                                        <div
-                                          key={index}
-                                          className="flex justify-between items-center p-3 border rounded bg-gray-800"
-                                        >
-                                          <div>
-                                            <p className="font-medium text-white">
-                                              {item.name[selectedOrder.language] || item.name.en}
-                                            </p>
-                                            <p className="text-sm text-gray-300">
-                                              Quantity: {item.quantity} × ₪{item.price}
-                                            </p>
-                                          </div>
-                                          <div className="font-bold text-emerald-600">
-                                            ₪{item.price * item.quantity}
-                                          </div>
-                                        </div>
-                                      ))}
-                                      <div className="border-t pt-3 flex justify-between items-center font-bold text-lg text-white">
-                                        <span>Total:</span>
-                                        <span className="text-emerald-600">₪{selectedOrder.total}</span>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-
-                                {/* Status Update */}
-                                <Card className="bg-gray-700 border-gray-600">
-                                  <CardHeader>
-                                    <CardTitle className="text-lg text-white">Update Order Status</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <Select
-                                      value={selectedOrder.status}
-                                      onValueChange={(value) => {
-                                        handleStatusChange(selectedOrder.id, value)
-                                        setSelectedOrder({ ...selectedOrder, status: value })
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent className="bg-gray-800 border-gray-700">
-                                        {orderStatuses.map((status) => {
-                                          const Icon = status.icon
-                                          return (
-                                            <SelectItem
-                                              key={status.value}
-                                              value={status.value}
-                                              className="text-white hover:bg-gray-700"
-                                            >
-                                              <div className="flex items-center">
-                                                <Icon className="w-4 h-4 mr-2" />
-                                                {status.label}
-                                              </div>
-                                            </SelectItem>
-                                          )
-                                        })}
-                                      </SelectContent>
-                                    </Select>
-                                  </CardContent>
-                                </Card>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-
-            {filteredOrders.length === 0 && (
-              <div className="text-center py-8 text-gray-400">
-                <Package className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-                <p>No orders found matching your criteria.</p>
-              </div>
-            )}
+              {filteredOrders.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  <Package className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+                  <p>No orders found matching your criteria.</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </main>
