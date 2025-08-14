@@ -24,74 +24,54 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Plus, Edit, Trash2, Search, ArrowLeft, Package, Star, X } from "lucide-react"
 import Link from "next/link"
+import { supabase } from "@/lib/supabase/client"
 
 // Initial sample products with updated structure
 const initialProducts = [
   {
     id: 1,
-    name: { en: "Premium Cotton Shirt", ar: "قميص قطني فاخر" },
+    name_en: "Premium Cotton Shirt",
+    name_ar: "قميص قطني فاخر",
     price: 299,
     images: ["/mens-white-dress-shirt.png", "/white-dress-shirt-front.png", "/white-dress-shirt-back.png"],
-    category: { en: "Shirts", ar: "قمصان" },
-    description: {
-      en: "High-quality cotton dress shirt perfect for formal occasions",
-      ar: "قميص قطني عالي الجودة مثالي للمناسبات الرسمية",
-    },
+    category_en: "Shirts",
+    category_ar: "قمصان",
+    description_en: "High-quality cotton dress shirt perfect for formal occasions",
+    description_ar: "قميص قطني عالي الجودة مثالي للمناسبات الرسمية",
     rating: 4.8,
-    inStock: true,
+    stock_status: "In Stock",
     colors: ["Black", "White", "Navy", "Gray"],
     sizes: ["S", "M", "L", "XL"],
-    colorNames: {
-      en: { Black: "Black", White: "White", Navy: "Navy", Gray: "Gray" },
-      ar: { Black: "أسود", White: "أبيض", Navy: "كحلي", Gray: "رمادي" },
-    },
-    sizeNames: {
-      en: { S: "Small", M: "Medium", L: "Large", XL: "Extra Large" },
-      ar: { S: "صغير", M: "متوسط", L: "كبير", XL: "كبير جداً" },
-    },
   },
   {
     id: 2,
-    name: { en: "Classic Denim Jeans", ar: "جينز كلاسيكي" },
+    name_en: "Classic Denim Jeans",
+    name_ar: "جينز كلاسيكي",
     price: 450,
     images: ["/mens-classic-blue-jeans.png", "/blue-jeans-side.png", "/blue-jeans-back-pocket.png"],
-    category: { en: "Jeans", ar: "جينز" },
-    description: { en: "Comfortable and stylish denim jeans for everyday wear", ar: "جينز مريح وأنيق للارتداء اليومي" },
+    category_en: "Jeans",
+    category_ar: "جينز",
+    description_en: "Comfortable and stylish denim jeans for everyday wear",
+    description_ar: "جينز مريح وأنيق للارتداء اليومي",
     rating: 4.6,
-    inStock: true,
+    stock_status: "In Stock",
     colors: ["Black", "Blue"],
     sizes: ["S", "M", "L"],
-    colorNames: {
-      en: { Black: "Black", Blue: "Blue" },
-      ar: { Black: "أسود", Blue: "أزرق" },
-    },
-    sizeNames: {
-      en: { S: "Small", M: "Medium", L: "Large" },
-      ar: { S: "صغير", M: "متوسط", L: "كبير" },
-    },
   },
   {
     id: 3,
-    name: { en: "Wool Blazer", ar: "بليزر صوفي" },
+    name_en: "Wool Blazer",
+    name_ar: "بليزر صوفي",
     price: 899,
     images: ["/mens-navy-wool-blazer.png", "/placeholder-m5etl.png", "/navy-blazer-detail.png"],
-    category: { en: "Blazers", ar: "بليزرات" },
-    description: {
-      en: "Sophisticated wool blazer for business and formal events",
-      ar: "بليزر صوفي أنيق للأعمال والمناسبات الرسمية",
-    },
+    category_en: "Blazers",
+    category_ar: "بليزرات",
+    description_en: "Sophisticated wool blazer for business and formal events",
+    description_ar: "بليزر صوفي أنيق للأعمال والمناسبات الرسمية",
     rating: 4.9,
-    inStock: true,
+    stock_status: "In Stock",
     colors: ["Navy", "Gray"],
     sizes: ["S", "M"],
-    colorNames: {
-      en: { Navy: "Navy", Gray: "Gray" },
-      ar: { Navy: "كحلي", Gray: "رمادي" },
-    },
-    sizeNames: {
-      en: { S: "Small", M: "Medium" },
-      ar: { S: "صغير", M: "متوسط" },
-    },
   },
 ]
 
@@ -136,7 +116,7 @@ const sizeTranslations = {
 }
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState(initialProducts)
+  const [products, setProducts] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
@@ -144,17 +124,18 @@ export default function AdminProducts() {
   const router = useRouter()
 
   const [newProduct, setNewProduct] = useState({
-    name: { en: "", ar: "" },
+    name_en: "",
+    name_ar: "",
     price: 0,
     images: [""],
-    category: { en: "", ar: "" },
-    description: { en: "", ar: "" },
+    category_en: "",
+    category_ar: "",
+    description_en: "",
+    description_ar: "",
     rating: 4.0,
-    inStock: true,
+    stock_status: "In Stock",
     colors: [] as string[],
     sizes: [] as string[],
-    colorNames: colorTranslations,
-    sizeNames: sizeTranslations,
   })
 
   useEffect(() => {
@@ -164,41 +145,32 @@ export default function AdminProducts() {
       router.push("/admin/login")
     } else {
       setIsAuthenticated(true)
-    }
-
-    const savedProducts = localStorage.getItem("storeProducts")
-    if (savedProducts) {
-      try {
-        const parsedProducts = JSON.parse(savedProducts)
-        const updatedProducts = parsedProducts.map((product: any) => ({
-          ...product,
-          images: product.images || [product.image || "/placeholder.svg"],
-          colors: product.colors || ["Black", "White"],
-          sizes: product.sizes || ["S", "M", "L"],
-          colorNames: product.colorNames || colorTranslations,
-          sizeNames: product.sizeNames || sizeTranslations,
-        }))
-        setProducts(updatedProducts)
-      } catch (error) {
-        console.error("Error loading products:", error)
-        localStorage.setItem("storeProducts", JSON.stringify(initialProducts))
-      }
-    } else {
-      localStorage.setItem("storeProducts", JSON.stringify(initialProducts))
+      loadProducts()
     }
   }, [router])
 
-  useEffect(() => {
-    if (products.length > 0) {
-      localStorage.setItem("storeProducts", JSON.stringify(products))
+  const loadProducts = async () => {
+    try {
+      const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Error loading products:", error)
+        return
+      }
+
+      if (data) {
+        setProducts(data)
+      }
+    } catch (error) {
+      console.error("Error loading products:", error)
     }
-  }, [products])
+  }
 
   const filteredProducts = products.filter(
     (product) =>
-      product.name.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.name.ar.includes(searchTerm) ||
-      product.category.en.toLowerCase().includes(searchTerm.toLowerCase()),
+      product.name_en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.name_ar?.includes(searchTerm) ||
+      product.category_en?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const addImageField = () => {
@@ -230,37 +202,50 @@ export default function AdminProducts() {
     setNewProduct({ ...newProduct, sizes: newSizes })
   }
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (
-      newProduct.name.en &&
-      newProduct.name.ar &&
+      newProduct.name_en &&
+      newProduct.name_ar &&
       newProduct.price > 0 &&
       newProduct.colors.length > 0 &&
       newProduct.sizes.length > 0
     ) {
-      const product = {
-        ...newProduct,
-        id: Math.max(...products.map((p) => p.id)) + 1,
-        images: newProduct.images.filter((img) => img.trim() !== ""),
-      }
-      const updatedProducts = [...products, product]
-      setProducts(updatedProducts)
-      localStorage.setItem("storeProducts", JSON.stringify(updatedProducts))
+      try {
+        const productData = {
+          ...newProduct,
+          images: newProduct.images.filter((img) => img.trim() !== ""),
+        }
 
-      setNewProduct({
-        name: { en: "", ar: "" },
-        price: 0,
-        images: [""],
-        category: { en: "", ar: "" },
-        description: { en: "", ar: "" },
-        rating: 4.0,
-        inStock: true,
-        colors: [],
-        sizes: [],
-        colorNames: colorTranslations,
-        sizeNames: sizeTranslations,
-      })
-      setIsAddDialogOpen(false)
+        const { error } = await supabase.from("products").insert([productData])
+
+        if (error) {
+          console.error("Error adding product:", error)
+          alert("Error adding product. Please try again.")
+          return
+        }
+
+        // Reload products
+        await loadProducts()
+
+        setNewProduct({
+          name_en: "",
+          name_ar: "",
+          price: 0,
+          images: [""],
+          category_en: "",
+          category_ar: "",
+          description_en: "",
+          description_ar: "",
+          rating: 4.0,
+          stock_status: "In Stock",
+          colors: [],
+          sizes: [],
+        })
+        setIsAddDialogOpen(false)
+      } catch (error) {
+        console.error("Error adding product:", error)
+        alert("Error adding product. Please try again.")
+      }
     }
   }
 
@@ -270,38 +255,51 @@ export default function AdminProducts() {
       images: product.images || [product.image || "/placeholder.svg"],
       colors: product.colors || ["Black", "White"],
       sizes: product.sizes || ["S", "M", "L"],
-      colorNames: product.colorNames || colorTranslations,
-      sizeNames: product.sizeNames || sizeTranslations,
     })
   }
 
-  const handleUpdateProduct = () => {
+  const handleUpdateProduct = async () => {
     if (editingProduct) {
-      const updatedProducts = products.map((p) =>
-        p.id === editingProduct.id
-          ? { ...editingProduct, images: editingProduct.images.filter((img: string) => img.trim() !== "") }
-          : p,
-      )
-      setProducts(updatedProducts)
-      localStorage.setItem("storeProducts", JSON.stringify(updatedProducts))
-      setEditingProduct(null)
+      try {
+        const { error } = await supabase
+          .from("products")
+          .update({
+            ...editingProduct,
+            images: editingProduct.images.filter((img: string) => img.trim() !== ""),
+          })
+          .eq("id", editingProduct.id)
+
+        if (error) {
+          console.error("Error updating product:", error)
+          alert("Error updating product. Please try again.")
+          return
+        }
+
+        // Reload products
+        await loadProducts()
+        setEditingProduct(null)
+      } catch (error) {
+        console.error("Error updating product:", error)
+        alert("Error updating product. Please try again.")
+      }
     }
   }
 
-  const handleDeleteProduct = (id: number) => {
-    const updatedProducts = products.filter((p) => p.id !== id)
-    setProducts(updatedProducts)
-    localStorage.setItem("storeProducts", JSON.stringify(updatedProducts))
-  }
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", id)
 
-  const handleCategoryChange = (categoryEn: string, isEditing = false) => {
-    const category = categories.find((c) => c.en === categoryEn)
-    if (category) {
-      if (isEditing && editingProduct) {
-        setEditingProduct({ ...editingProduct, category })
-      } else {
-        setNewProduct({ ...newProduct, category })
+      if (error) {
+        console.error("Error deleting product:", error)
+        alert("Error deleting product. Please try again.")
+        return
       }
+
+      // Reload products
+      await loadProducts()
+    } catch (error) {
+      console.error("Error deleting product:", error)
+      alert("Error deleting product. Please try again.")
     }
   }
 
@@ -352,10 +350,8 @@ export default function AdminProducts() {
                         </Label>
                         <Input
                           id="name-en"
-                          value={newProduct.name.en}
-                          onChange={(e) =>
-                            setNewProduct({ ...newProduct, name: { ...newProduct.name, en: e.target.value } })
-                          }
+                          value={newProduct.name_en}
+                          onChange={(e) => setNewProduct({ ...newProduct, name_en: e.target.value })}
                           placeholder="Enter English name"
                           className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                         />
@@ -366,10 +362,8 @@ export default function AdminProducts() {
                         </Label>
                         <Input
                           id="name-ar"
-                          value={newProduct.name.ar}
-                          onChange={(e) =>
-                            setNewProduct({ ...newProduct, name: { ...newProduct.name, ar: e.target.value } })
-                          }
+                          value={newProduct.name_ar}
+                          onChange={(e) => setNewProduct({ ...newProduct, name_ar: e.target.value })}
                           placeholder="Enter Arabic name"
                           dir="rtl"
                           className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
@@ -395,7 +389,10 @@ export default function AdminProducts() {
                         <Label htmlFor="category" className="text-gray-200">
                           Category
                         </Label>
-                        <Select value={newProduct.category.en} onValueChange={(value) => handleCategoryChange(value)}>
+                        <Select
+                          value={newProduct.category_en}
+                          onValueChange={(value) => setNewProduct({ ...newProduct, category_en: value })}
+                        >
                           <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                             <SelectValue placeholder="Select category" className="text-gray-400" />
                           </SelectTrigger>
@@ -495,13 +492,8 @@ export default function AdminProducts() {
                         </Label>
                         <Textarea
                           id="desc-en"
-                          value={newProduct.description.en}
-                          onChange={(e) =>
-                            setNewProduct({
-                              ...newProduct,
-                              description: { ...newProduct.description, en: e.target.value },
-                            })
-                          }
+                          value={newProduct.description_en}
+                          onChange={(e) => setNewProduct({ ...newProduct, description_en: e.target.value })}
                           placeholder="Enter English description"
                           className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                         />
@@ -512,14 +504,8 @@ export default function AdminProducts() {
                         </Label>
                         <Textarea
                           id="desc-ar"
-                          value={newProduct.description.ar}
-                          onChange={(e) =>
-                            setNewProduct({
-                              ...newProduct,
-                              description: { ...newProduct.description, ar: e.target.value },
-                            })
-                          }
-                          placeholder="Enter Arabic description"
+                          value={newProduct.description_ar}
+                          onChange={(e) => setNewProduct({ ...newProduct, description_ar: e.target.value })}
                           dir="rtl"
                           className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                         />
@@ -547,17 +533,17 @@ export default function AdminProducts() {
                           Stock Status
                         </Label>
                         <Select
-                          value={newProduct.inStock ? "true" : "false"}
-                          onValueChange={(value) => setNewProduct({ ...newProduct, inStock: value === "true" })}
+                          value={newProduct.stock_status}
+                          onValueChange={(value) => setNewProduct({ ...newProduct, stock_status: value })}
                         >
                           <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                             <SelectValue className="text-gray-400" />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                            <SelectItem value="true" className="text-gray-300">
+                            <SelectItem value="In Stock" className="text-gray-300">
                               In Stock
                             </SelectItem>
-                            <SelectItem value="false" className="text-gray-300">
+                            <SelectItem value="Out of Stock" className="text-gray-300">
                               Out of Stock
                             </SelectItem>
                           </SelectContent>
@@ -605,7 +591,9 @@ export default function AdminProducts() {
               <Badge className="bg-gray-700 text-white">✓</Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{products.filter((p) => p.inStock).length}</div>
+              <div className="text-2xl font-bold text-white">
+                {products.filter((p) => p.stock_status === "In Stock").length}
+              </div>
             </CardContent>
           </Card>
 
@@ -617,7 +605,9 @@ export default function AdminProducts() {
               </Badge>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{products.filter((p) => !p.inStock).length}</div>
+              <div className="text-2xl font-bold text-white">
+                {products.filter((p) => p.stock_status === "Out of Stock").length}
+              </div>
             </CardContent>
           </Card>
 
@@ -676,7 +666,7 @@ export default function AdminProducts() {
                       <div className="flex items-center space-x-2">
                         <img
                           src={product.images?.[0] || product.image || "/placeholder.svg"}
-                          alt={product.name.en}
+                          alt={product.name_en}
                           className="w-12 h-12 object-cover rounded"
                         />
                         {product.images && product.images.length > 1 && (
@@ -688,17 +678,17 @@ export default function AdminProducts() {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-white">{product.name.en}</p>
+                        <p className="font-medium text-white">{product.name_en}</p>
                         <p className="text-sm text-gray-400" dir="rtl">
-                          {product.name.ar}
+                          {product.name_ar}
                         </p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="text-white">{product.category.en}</p>
+                        <p className="text-white">{product.category_en}</p>
                         <p className="text-sm text-gray-400" dir="rtl">
-                          {product.category.ar}
+                          {product.category_ar}
                         </p>
                       </div>
                     </TableCell>
@@ -739,10 +729,12 @@ export default function AdminProducts() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={product.inStock ? "default" : "destructive"}
-                        className={product.inStock ? "bg-gray-700 text-white" : "bg-red-900 text-red-200"}
+                        variant={product.stock_status === "In Stock" ? "default" : "destructive"}
+                        className={
+                          product.stock_status === "In Stock" ? "bg-gray-700 text-white" : "bg-red-900 text-red-200"
+                        }
                       >
-                        {product.inStock ? "In Stock" : "Out of Stock"}
+                        {product.stock_status}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -769,7 +761,7 @@ export default function AdminProducts() {
                             <AlertDialogHeader>
                               <AlertDialogTitle className="text-white">Delete Product</AlertDialogTitle>
                               <AlertDialogDescription className="text-gray-300">
-                                Are you sure you want to delete "{product.name.en}"? This action cannot be undone.
+                                Are you sure you want to delete "{product.name_en}"? This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -817,10 +809,8 @@ export default function AdminProducts() {
                   </Label>
                   <Input
                     id="edit-name-en"
-                    value={editingProduct.name.en}
-                    onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, name: { ...editingProduct.name, en: e.target.value } })
-                    }
+                    value={editingProduct.name_en}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, name_en: e.target.value })}
                     className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
@@ -830,10 +820,8 @@ export default function AdminProducts() {
                   </Label>
                   <Input
                     id="edit-name-ar"
-                    value={editingProduct.name.ar}
-                    onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, name: { ...editingProduct.name, ar: e.target.value } })
-                    }
+                    value={editingProduct.name_ar}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, name_ar: e.target.value })}
                     dir="rtl"
                     className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   />
@@ -858,8 +846,8 @@ export default function AdminProducts() {
                     Category
                   </Label>
                   <Select
-                    value={editingProduct.category.en}
-                    onValueChange={(value) => handleCategoryChange(value, true)}
+                    value={editingProduct.category_en}
+                    onValueChange={(value) => setEditingProduct({ ...editingProduct, category_en: value })}
                   >
                     <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                       <SelectValue className="text-gray-400" />
@@ -977,13 +965,8 @@ export default function AdminProducts() {
                   </Label>
                   <Textarea
                     id="edit-desc-en"
-                    value={editingProduct.description.en}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        description: { ...editingProduct.description, en: e.target.value },
-                      })
-                    }
+                    value={editingProduct.description_en}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, description_en: e.target.value })}
                     className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
@@ -993,13 +976,8 @@ export default function AdminProducts() {
                   </Label>
                   <Textarea
                     id="edit-desc-ar"
-                    value={editingProduct.description.ar}
-                    onChange={(e) =>
-                      setEditingProduct({
-                        ...editingProduct,
-                        description: { ...editingProduct.description, ar: e.target.value },
-                      })
-                    }
+                    value={editingProduct.description_ar}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, description_ar: e.target.value })}
                     dir="rtl"
                     className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   />
@@ -1027,17 +1005,17 @@ export default function AdminProducts() {
                     Stock Status
                   </Label>
                   <Select
-                    value={editingProduct.inStock ? "true" : "false"}
-                    onValueChange={(value) => setEditingProduct({ ...editingProduct, inStock: value === "true" })}
+                    value={editingProduct.stock_status}
+                    onValueChange={(value) => setEditingProduct({ ...editingProduct, stock_status: value })}
                   >
                     <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                       <SelectValue className="text-gray-400" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                      <SelectItem value="true" className="text-gray-300">
+                      <SelectItem value="In Stock" className="text-gray-300">
                         In Stock
                       </SelectItem>
-                      <SelectItem value="false" className="text-gray-300">
+                      <SelectItem value="Out of Stock" className="text-gray-300">
                         Out of Stock
                       </SelectItem>
                     </SelectContent>

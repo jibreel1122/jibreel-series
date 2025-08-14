@@ -11,55 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Search, Eye, Package, Clock, CheckCircle, Truck, Phone, MapPin, User, Calendar } from "lucide-react"
 import Link from "next/link"
-
-// Sample orders data - in a real app this would come from a database
-const sampleOrders = [
-  {
-    id: "ORD-001",
-    customerInfo: {
-      fullName: "أحمد محمد علي",
-      phone: "+972599123456",
-      address: "شارع الملك فيصل، رام الله، فلسطين",
-    },
-    items: [
-      { id: 1, name: { en: "Premium Cotton Shirt", ar: "قميص قطني فاخر" }, price: 299, quantity: 2 },
-      { id: 3, name: { en: "Wool Blazer", ar: "بليزر صوفي" }, price: 899, quantity: 1 },
-    ],
-    total: 1497,
-    status: "pending",
-    orderDate: "2024-01-15T10:30:00Z",
-    language: "ar",
-  },
-  {
-    id: "ORD-002",
-    customerInfo: {
-      fullName: "Mohammed Hassan",
-      phone: "+972599654321",
-      address: "Al-Bireh Street, Ramallah, Palestine",
-    },
-    items: [
-      { id: 2, name: { en: "Classic Denim Jeans", ar: "جينز كلاسيكي" }, price: 450, quantity: 1 },
-      { id: 4, name: { en: "Casual T-Shirt", ar: "تي شيرت كاجوال" }, price: 149, quantity: 3 },
-    ],
-    total: 897,
-    status: "processing",
-    orderDate: "2024-01-14T14:20:00Z",
-    language: "en",
-  },
-  {
-    id: "ORD-003",
-    customerInfo: {
-      fullName: "خالد أبو سالم",
-      phone: "+972599789012",
-      address: "شارع النصر، نابلس، فلسطين",
-    },
-    items: [{ id: 6, name: { en: "Leather Jacket", ar: "جاكيت جلدي" }, price: 1299, quantity: 1 }],
-    total: 1299,
-    status: "delivered",
-    orderDate: "2024-01-13T09:15:00Z",
-    language: "ar",
-  },
-]
+import { supabase } from "@/lib/supabase/client"
 
 const orderStatuses = [
   { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800", icon: Clock },
@@ -69,7 +21,7 @@ const orderStatuses = [
 ]
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState(sampleOrders)
+  const [orders, setOrders] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
@@ -83,14 +35,40 @@ export default function AdminOrders() {
       router.push("/admin/login")
     } else {
       setIsAuthenticated(true)
-      // Load orders from localStorage if available
-      const savedOrders = localStorage.getItem("jibreelOrders")
-      if (savedOrders) {
-        const parsedOrders = JSON.parse(savedOrders)
-        setOrders([...sampleOrders, ...parsedOrders])
-      }
+      loadOrders()
     }
   }, [router])
+
+  const loadOrders = async () => {
+    try {
+      const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Error loading orders:", error)
+        return
+      }
+
+      if (data) {
+        // Transform Supabase data to match component structure
+        const transformedOrders = data.map((order: any) => ({
+          id: order.id,
+          customerInfo: {
+            fullName: order.customer_name,
+            phone: order.whatsapp_number,
+            address: order.address,
+          },
+          items: order.items,
+          total: order.total_amount,
+          status: order.status,
+          orderDate: order.created_at,
+          language: "en", // Default language
+        }))
+        setOrders(transformedOrders)
+      }
+    } catch (error) {
+      console.error("Error loading orders:", error)
+    }
+  }
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -103,13 +81,27 @@ export default function AdminOrders() {
     return matchesSearch && matchesStatus
   })
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    const updatedOrders = orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
-    setOrders(updatedOrders)
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId)
 
-    // Update localStorage
-    const customOrders = updatedOrders.filter((order) => !sampleOrders.find((sample) => sample.id === order.id))
-    localStorage.setItem("jibreelOrders", JSON.stringify(customOrders))
+      if (error) {
+        console.error("Error updating order status:", error)
+        alert("Error updating order status. Please try again.")
+        return
+      }
+
+      // Update local state
+      setOrders(orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)))
+
+      // Update selected order if it's the one being changed
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus })
+      }
+    } catch (error) {
+      console.error("Error updating order status:", error)
+      alert("Error updating order status. Please try again.")
+    }
   }
 
   const getStatusInfo = (status: string) => {
